@@ -51,6 +51,7 @@ module uknc_mem(
    output reg        cpu_asck,
 
    output            ppu_clk,     // 3.125 MHz
+   output            cpu_clk,     // 4.1667 MHz
    input      [18:0] ppu_addr,
    output reg [31:0] ppu_dout,
    input      [31:0] ppu_din,
@@ -68,9 +69,15 @@ module uknc_mem(
 // ---------------------------------------------------------------------
 localparam INIT_DELAY_BITS = 16;   // 65536 clkram cycles, 1.3 ms
 
+// The PLL's lock is asynchronous: every counter below takes it through
+// the same two flops, so they all leave reset on the same edge.
+reg  [1:0] lock_s = 2'b00;
+always @(posedge clkram) lock_s <= {lock_s[0], lockclk};
+wire locked = lock_s[1];
+
 reg  [INIT_DELAY_BITS-1:0] settle = 0;
 always @(posedge clkram)
-   if(!lockclk) settle <= 0;
+   if(!locked) settle <= 0;
    else if(~&settle) settle <= settle + 1'd1;
 
 assign init = &settle;
@@ -253,7 +260,7 @@ always @(posedge clkram)begin
       horz <= 11'd0;
    end else horz <= horz + 1'b1;
 
-   if(!lockclk)begin
+   if(!locked)begin
       horz <= 0;
       vert <= 0;
    end
@@ -361,23 +368,41 @@ always @(posedge clkram)begin
 end
 
 // ---------------------------------------------------------------------
-// Clocks off the horizontal counter, from flops of their own (sdram2).
-// clk25_q is horz[0]; clk312_q toggles where horz[3] does.
+// Clocks off counters of clkram, from flops of their own (sdram2).
+// clk25_q is horz[0]; clk312_q toggles where horz[3] does.  The CPU's
+// clock comes off a counter of its own here rather than off the PLL, so
+// that its phase against the other two is the same at every start: all
+// three counters leave reset on the same clkram edge.  Counting that edge
+// as the first, clk_25 rises on odd edges, the PPU clock on edges 8 + 16n
+// and the CPU clock on edges 1 + 12n; UKNC.sdc gives the tool exactly
+// these edges.
 // ---------------------------------------------------------------------
+localparam CPU_DIV  = 12;              // 50 MHz / 12 = 4.1667 MHz
+localparam CPU_HIGH = CPU_DIV / 2;
+
 reg clk25_q  = 1'b0;
 reg clk312_q = 1'b0;
+reg clkcpu_q = 1'b0;
+reg [3:0] cpu_phase = 4'd0;            // edges since reset, mod CPU_DIV
+wire [3:0] cpu_phase_n = cpu_phase == CPU_DIV - 1 ? 4'd0 : cpu_phase + 4'd1;
+
 always @(posedge clkram)
-   if(!lockclk)begin
-      clk25_q  <= 1'b0;
-      clk312_q <= 1'b0;
+   if(!locked)begin
+      clk25_q   <= 1'b0;
+      clk312_q  <= 1'b0;
+      clkcpu_q  <= 1'b0;
+      cpu_phase <= 4'd0;
    end else begin
-      clk25_q  <= ~horz[0];
-      clk312_q <= horz[3] ^ (&horz[2:0]);
+      clk25_q   <= ~horz[0];
+      clk312_q  <= horz[3] ^ (&horz[2:0]);
+      cpu_phase <= cpu_phase_n;
+      clkcpu_q  <= cpu_phase_n >= 4'd1 && cpu_phase_n <= CPU_HIGH;
    end
 
 assign clk_50  = clkram;
 assign clk_25  = clk25_q;
 assign ppu_clk = clk312_q;
+assign cpu_clk = clkcpu_q;
 assign ce_pix  = horz[0];
 
 // ---------------------------------------------------------------------

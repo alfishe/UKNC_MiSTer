@@ -147,7 +147,7 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1), .VDNUM(DRIVES)) hps_io
 //
 // clk_sys  50 MHz       memory, video, and the counter the PPU clock and
 //                       the 25 MHz peripheral clock are made from (uknc_mem)
-// clk_cpu  4.17 MHz     the CPU (tang-uknc: 4.18 MHz)
+// clk_cpu  4.17 MHz     the CPU, clk_sys / 12 (tang-uknc: 4.18 MHz)
 // clk_ppu  3.125 MHz    the PPU, clk_sys / 16
 //
 
@@ -160,7 +160,7 @@ pll pll
 	.refclk(CLK_50M),
 	.rst(0),
 	.outclk_0(clk_sys),
-	.outclk_1(clk_cpu),
+	.outclk_1(),
 	.locked(pll_locked)
 );
 
@@ -237,6 +237,7 @@ uknc_mem ram1
 	.cpu_asck (askn_cpu_i),
 
 	.ppu_clk  (clk_ppu),
+	.cpu_clk  (clk_cpu),
 	.ppu_addr ({3'd0,addr_ppu_o}),
 	.ppu_dout (data_ppu_i),
 	.ppu_din  (data_ppu_o),
