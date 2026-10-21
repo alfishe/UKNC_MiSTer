@@ -1,0 +1,65 @@
+# [UKNC](https://en.wikipedia.org/wiki/UKNC) (Elektronika MS 0511) for MiSTer Platform
+
+A Soviet school computer of 1987: two PDP-11 compatible K1801VM2 processors,
+the CPU with 64 KB of RAM and the peripheral processor (PPU) with 32 KB of RAM
+and 32 KB of ROM, a 640x288 display in three planes and eight colours out of
+sixteen, and the floppy, keyboard and sound on the PPU's side.
+
+The machine is [tang-uknc](https://github.com/lordamot/tang-uknc) moved to
+MiSTer, with the K1801VM2 cores from [1801BM1/cpu11](https://github.com/1801BM1/cpu11).
+[UKNCBTL](https://github.com/nzeemin/ukncbtl) was the reference for the
+machine's behaviour.
+
+## Features
+* Both processors, the PPU ROM built in.
+* Four floppy drives, read and write.
+* PS/2 keyboard mapped to the UKNC layout.
+* Beeper, "Aberrant" AY-3-8910 card, Covox.
+* Serial port on the MiSTer UART.
+
+Not yet: hard disk (IDE cartridge), mouse, 15 kHz video.
+
+## Installation
+Put the RBF in the root of the SD card and floppy images (`.dsk`, 800 KB:
+80 tracks, 2 sides, 10 sectors of 512 bytes) in `games/UKNC`.
+
+Another PPU ROM can be put in `games/UKNC/boot.rom` (32 KB); it is loaded
+over the built-in one at start-up.
+
+## Usage
+Mount an image in drive 0, press `1` in the boot menu and then Enter (ВВОД).
+
+"Floppy write protect" in the OSD protects all drives; a read-only image file
+protects its own drive.
+
+## Keyboard
+
+| PC              | UKNC        |
+|-----------------|-------------|
+| F1-F5           | К1-К5       |
+| F6              | ПОМ         |
+| F7              | УСТ         |
+| F8              | ИСП         |
+| F9              | СБРОС       |
+| F10             | СТОП        |
+| Esc             | АР2         |
+| Backspace       | ЗБ          |
+| Tab             | ТАБ         |
+| Enter           | ВВОД        |
+| Caps Lock       | ФИКС        |
+| Ctrl            | УПР         |
+| Shift           | НР          |
+| Left Alt        | АЛФ         |
+| Right Alt       | ГРАФ        |
+| Keypad Enter    | keypad ВВОД |
+
+## Simulation
+`sim/` holds a Verilator model of the core; `make` there, then
+`obj_dir/Vsim_top FRAMES EVERY [options]` writes frames as PPM files.
+The options are listed in `sim/sim_main.cpp`.
+
+## Licences
+* The framework (`sys/`) and this core's own files: GPL v2 or later, see `LICENSE`.
+* tang-uknc's HDL in `rtl/`: MIT, see `rtl/LICENSE.tang-uknc.md`.
+* `rtl/vm2/`: K1801VM2 by 1801BM1, CC BY 3.0.
+* `rtl/ay/ym2149.sv`: MikeJ and Sorgelig, see the file.
