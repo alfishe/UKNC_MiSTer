@@ -36,7 +36,9 @@ module hps_io #(parameter CONF_STR = "", parameter WIDE = 0, parameter VDNUM = 1
    input       [15:0] sd_buff_din[VDNUM],
    output             sd_buff_wr,
 
-   output [10:0] ps2_key
+   output [10:0] ps2_key,
+   output [24:0] ps2_mouse,
+   output [64:0] RTC
 );
 
 assign buttons        = 0;
@@ -47,6 +49,8 @@ assign ioctl_wr       = 0;
 assign ioctl_addr     = 0;
 assign ioctl_dout     = 0;
 assign ps2_key        = sim_top.ps2_key;
+assign ps2_mouse      = 0;
+assign RTC            = 0;
 
 assign img_mounted    = sim_top.img_mounted;
 assign img_readonly   = 1'b0;

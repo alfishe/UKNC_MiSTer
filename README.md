@@ -16,8 +16,9 @@ machine's behaviour.
 * PS/2 keyboard mapped to the UKNC layout.
 * Beeper, "Aberrant" AY-3-8910 card, Covox.
 * Serial port on the MiSTer UART.
+* Kakave+ cartridge: PS/2 mouse and real-time clock (set from the MiSTer).
 
-Not yet: hard disk (IDE cartridge), mouse, 15 kHz video.
+Not yet: hard disk (IDE cartridge), 15 kHz video.
 
 ## Installation
 Put the RBF in the root of the SD card and floppy images (`.dsk`, 800 KB:
@@ -31,6 +32,9 @@ Mount an image in drive 0, press `1` in the boot menu and then Enter (ВВОД).
 
 "Floppy write protect" in the OSD protects all drives; a read-only image file
 protects its own drive.
+
+"Kakave+ mouse" and "Kakave+ clock" in the OSD hide the cartridge's mouse
+and clock from the software.
 
 ## Keyboard
 

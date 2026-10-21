@@ -69,6 +69,9 @@ localparam CONF_STR = {
 	"S3,DSK,Drive 3;",
 	"O[11],Floppy write protect,Off,On;",
 	"-;",
+	"O[12],Kakave+ mouse,On,Off;",
+	"O[13],Kakave+ clock,On,Off;",
+	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"-;",
 	"O[3:2],Volume,Full,1/2,1/4,Mute;",
@@ -88,6 +91,8 @@ localparam CONF_STR = {
 wire   [1:0] buttons;
 wire [127:0] status;
 wire  [10:0] ps2_key;
+wire  [24:0] ps2_mouse;
+wire  [64:0] rtc;
 
 wire        ioctl_download;
 wire  [7:0] ioctl_index;
@@ -140,7 +145,9 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1), .VDNUM(DRIVES)) hps_io
 	.sd_buff_din(sd_buff_din),
 	.sd_buff_wr(sd_buff_wr),
 
-	.ps2_key(ps2_key)
+	.ps2_key(ps2_key),
+	.ps2_mouse(ps2_mouse),
+	.RTC(rtc)
 );
 
 ///////////////////////   CLOCKS   ///////////////////////////////
@@ -319,6 +326,8 @@ wire [15:0]ppu_wbm_dat_i_abr;
 wire       ppu_wbm_ack_i_abr;
 wire [15:0]ppu_wbm_dat_i_cvx;
 wire       ppu_wbm_ack_i_cvx;
+wire [15:0]ppu_wbm_dat_i_kkv;
+wire       ppu_wbm_ack_i_kkv;
 
 assign ppu_vm_virq_i = ppu_vm_virq_i_xm2 | ppu_vm_virq_i_vp;
 
@@ -328,10 +337,11 @@ assign ppu_wbm_dat_i = ppu_wbm_ack_i_xm2 ? ppu_wbm_dat_i_xm2 :
                        ppu_wbm_ack_i_vp  ? ppu_wbm_dat_i_vp  :
                        ppu_wbm_ack_i_128 ? ppu_wbm_dat_i_128 :
                        ppu_wbm_ack_i_abr ? ppu_wbm_dat_i_abr :
-                       ppu_wbm_ack_i_cvx ? ppu_wbm_dat_i_cvx : 16'o0;
+                       ppu_wbm_ack_i_cvx ? ppu_wbm_dat_i_cvx :
+                       ppu_wbm_ack_i_kkv ? ppu_wbm_dat_i_kkv : 16'o0;
 
 assign ppu_wbm_ack_i = ppu_wbm_ack_i_xm2 | ppu_wbm_ack_i_vp | ppu_wbm_ack_i_128 |
-                       ppu_wbm_ack_i_abr | ppu_wbm_ack_i_cvx;
+                       ppu_wbm_ack_i_abr | ppu_wbm_ack_i_cvx | ppu_wbm_ack_i_kkv;
 
 assign ppu_wbi_dat_i = ppu_wbi_ack_i_xm2 ? ppu_wbi_dat_i_xm2 :
                        ppu_wbi_ack_i_vp  ? ppu_wbi_dat_i_vp  : 16'o0;
@@ -587,6 +597,33 @@ covox cvx1
 	.stb   (ppu_wbm_stb_o),
 	.ack   (ppu_wbm_ack_i_cvx),
 	.sample(covox_sample)
+);
+
+// The Kakave+ cartridge: the mouse at 0177400 and the clock at 0177410.
+// hps_io's ps2_mouse: [24] toggles per report, [23:16] dy, [15:8] dx,
+// [5] dy's sign, [4] dx's sign, [1] right button, [0] left.
+localparam MOUSE_TGL = 24, MOUSE_DY = 16, MOUSE_DX = 8, MOUSE_DY_SIGN = 5, MOUSE_DX_SIGN = 4;
+localparam RTC_TGL = 64, RTC_BCD_BITS = 56;
+
+kakave kkv1
+(
+	.clk       (ppuclk_n),
+	.init      (ppu_vm_init_o),
+	.adr       (ppu_wbm_adr_o),
+	.dat_i     (ppu_wbm_dat_o),
+	.dat_o     (ppu_wbm_dat_i_kkv),
+	.wre       (ppu_wbm_wre_o),
+	.sel       (ppu_wbm_sel_o),
+	.stb       (ppu_wbm_stb_o),
+	.ack       (ppu_wbm_ack_i_kkv),
+	.mouse_tgl (ps2_mouse[MOUSE_TGL]),
+	.mouse_dx  ({ps2_mouse[MOUSE_DX_SIGN], ps2_mouse[MOUSE_DX +: 8]}),
+	.mouse_dy  ({ps2_mouse[MOUSE_DY_SIGN], ps2_mouse[MOUSE_DY +: 8]}),
+	.mouse_btns(ps2_mouse[1:0]),
+	.rtc_tgl   (rtc[RTC_TGL]),
+	.rtc_bcd   (rtc[RTC_BCD_BITS-1:0]),
+	.mouse_en  (~status[12]),
+	.rtc_en    (~status[13])
 );
 
 wire [7:0] lpt_data;

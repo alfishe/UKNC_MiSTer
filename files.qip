@@ -17,6 +17,7 @@ set_global_assignment -name VERILOG_FILE rtl/fdd/fdd4.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/ay/ym2149.sv
 set_global_assignment -name VERILOG_FILE rtl/aberrant.v
 set_global_assignment -name VERILOG_FILE rtl/covox.v
+set_global_assignment -name VERILOG_FILE rtl/kakave.v
 set_global_assignment -name VERILOG_FILE rtl/mixer.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/keyboard.sv
 set_global_assignment -name SDC_FILE UKNC.sdc
