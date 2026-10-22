@@ -92,6 +92,8 @@ localparam CONF_STR = {
 };
 
 wire   [1:0] buttons;
+wire         forced_scandoubler;
+wire  [21:0] gamma_bus;
 wire [127:0] status;
 wire  [10:0] ps2_key;
 wire  [24:0] ps2_mouse;
@@ -125,9 +127,10 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1), .VDNUM(SLOTS)) hps_io
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
 	.EXT_BUS(),
-	.gamma_bus(),
+	.gamma_bus(gamma_bus),
 
 	.buttons(buttons),
+	.forced_scandoubler(forced_scandoubler),
 	.status(status),
 	.status_menumask(16'd0),
 
@@ -217,7 +220,8 @@ wire        askn_ppu_i;
 
 wire        hsync;
 wire        vsync;
-wire        visible;
+wire        hblank;
+wire        vblank;
 wire        ce_pix;
 wire [ 7:0] red;
 wire [ 7:0] green;
@@ -231,7 +235,8 @@ uknc_mem ram1
 
 	.hsync    (hsync),
 	.vsync    (vsync),
-	.visible  (visible),
+	.hblank   (hblank),
+	.vblank   (vblank),
 	.ce_pix   (ce_pix),
 	.red      (red),
 	.green    (green),
@@ -261,26 +266,40 @@ uknc_mem ram1
 	.ppu_asck (askn_ppu_i)
 );
 
-reg  [7:0] vga_r, vga_g, vga_b;
-reg        vga_hs, vga_vs, vga_de;
-
-always @(posedge clk_sys) if(ce_pix) begin
-	vga_r  <= red;
-	vga_g  <= green;
-	vga_b  <= blue;
-	vga_hs <= hsync;
-	vga_vs <= vsync;
-	vga_de <= visible;
-end
+// The core's video is 15 kHz; the scan doubler makes it 31 kHz when the
+// MiSTer is set to (forced_scandoubler), the scaler takes it as it is.
+localparam LINE_PIXELS = 640;
 
 assign CLK_VIDEO = clk_sys;
-assign CE_PIXEL  = ce_pix;
-assign VGA_R  = vga_r;
-assign VGA_G  = vga_g;
-assign VGA_B  = vga_b;
-assign VGA_HS = vga_hs;
-assign VGA_VS = vga_vs;
-assign VGA_DE = vga_de;
+
+video_mixer #(.LINE_LENGTH(LINE_PIXELS), .HALF_DEPTH(0), .GAMMA(0)) video_mixer
+(
+	.CLK_VIDEO  (CLK_VIDEO),
+	.CE_PIXEL   (CE_PIXEL),
+	.ce_pix     (ce_pix),
+
+	.scandoubler(forced_scandoubler),
+	.hq2x       (1'b0),
+	.gamma_bus  (gamma_bus),
+
+	.R          (red),
+	.G          (green),
+	.B          (blue),
+	.HSync      (hsync),
+	.VSync      (vsync),
+	.HBlank     (hblank),
+	.VBlank     (vblank),
+
+	.HDMI_FREEZE(1'b0),
+	.freeze_sync(),
+
+	.VGA_R      (VGA_R),
+	.VGA_G      (VGA_G),
+	.VGA_B      (VGA_B),
+	.VGA_VS     (VGA_VS),
+	.VGA_HS     (VGA_HS),
+	.VGA_DE     (VGA_DE)
+);
 
 ///////////////////////   KEYBOARD   /////////////////////////////
 

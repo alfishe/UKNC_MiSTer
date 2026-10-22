@@ -1,7 +1,7 @@
 # Model of the core for Verilator: make, then obj_dir/Vsim_top [frames] [every]
 
 RTL = ../rtl
-SRC = sim_top.sv monitor.sv hps_io_sim.sv pll_sim.v ../UKNC.sv \
+SRC = sim_top.sv monitor.sv hps_io_sim.sv video_mixer_sim.sv pll_sim.v ../UKNC.sv \
       $(RTL)/uknc_mem.sv $(RTL)/uknc_rom.sv $(RTL)/cpu.v $(RTL)/ppu.v \
       $(RTL)/wmrst.v $(RTL)/xm2-01.v $(RTL)/vp1_120.v $(RTL)/vp65.v \
       $(RTL)/mkcolorreg.v $(RTL)/aberrant.v $(RTL)/covox.v $(RTL)/kakave.v $(RTL)/ide.v $(RTL)/mixer.v \

@@ -13,6 +13,7 @@ module hps_io #(parameter CONF_STR = "", parameter WIDE = 0, parameter VDNUM = 1
    inout  [21:0] gamma_bus,
 
    output [  1:0] buttons,
+   output         forced_scandoubler,
    output [127:0] status,
    input  [ 15:0] status_menumask,
 
@@ -42,6 +43,8 @@ module hps_io #(parameter CONF_STR = "", parameter WIDE = 0, parameter VDNUM = 1
 );
 
 assign buttons        = 0;
+assign forced_scandoubler = 0;
+assign gamma_bus[20:0] = 0;
 assign status         = 0;
 assign ioctl_download = 0;
 assign ioctl_index    = 0;

@@ -30,10 +30,12 @@ module uknc_mem(
    input             lockclk,     // PLL locked
    output            init,        // high once memory and video are running
 
-   output            hsync,
-   output            vsync,
-   output            visible,
-   output            ce_pix,      // one clkram in two: the 25 MHz pixel rate
+   // 15 kHz video: 640 x 288 in a 640 x 300 window, 15.625 kHz, 50.57 Hz
+   output reg        hsync,
+   output reg        vsync,
+   output reg        hblank,
+   output reg        vblank,
+   output            ce_pix,      // one clkram in four: the 12.5 MHz pixel rate
    output     [ 7:0] red,
    output     [ 7:0] green,
    output     [ 7:0] blue,
@@ -403,7 +405,6 @@ assign clk_50  = clkram;
 assign clk_25  = clk25_q;
 assign ppu_clk = clk312_q;
 assign cpu_clk = clkcpu_q;
-assign ce_pix  = horz[0];
 
 // ---------------------------------------------------------------------
 // Video generator
@@ -413,15 +414,10 @@ wire [ 9:0]xs = visible_x ? horz[10:1] - 10'd8 : 10'd0;
 
 // visible_x starts 8 pixels late: the first byte of a line is fetched
 // eight pixels ahead of its display.
-wire  visible_y = vert < VACTV;
 wire  visible_x = horz >= 16 && horz < (HACTV + 8)*2;
 wire  visible_z = vert > (VSHOW_FIRST-1) && vert < VSHOW_END;
 
 wire   visiblez  = visible_x && visible_z;
-assign visible   = visible_x && visible_y;
-
-assign hsync     = horz >= (HACTV + HFP)*2 && horz < (HACTV + HFP + HSYNC)*2;
-assign vsync     = vert >= (VACTV + VFP)   && vert < (VACTV + VFP + VSYNC);
 
 // adtx: byte of the line, from x = 0; indx: from the visible start; tx: the
 // bit within the byte.
@@ -495,9 +491,65 @@ endfunction
 wire [ 3:0] yrgb   = iscursor ? vga_regi[3:0] : cvt;
 wire [ 2:0] intens = iscursor ? 3'b111 : vga_regi[INTENSITY_LSB +: 3];
 
-assign red   = visiblez ? level(yrgb[CH_RED],   yrgb[YRGB_Y], intens[CH_RED])   : 8'd0;
-assign green = visiblez ? level(yrgb[CH_GREEN], yrgb[YRGB_Y], intens[CH_GREEN]) : 8'd0;
-assign blue  = visiblez ? level(yrgb[CH_BLUE],  yrgb[YRGB_Y], intens[CH_BLUE])  : 8'd0;
+wire [7:0] red31   = visiblez ? level(yrgb[CH_RED],   yrgb[YRGB_Y], intens[CH_RED])   : 8'd0;
+wire [7:0] green31 = visiblez ? level(yrgb[CH_GREEN], yrgb[YRGB_Y], intens[CH_GREEN]) : 8'd0;
+wire [7:0] blue31  = visiblez ? level(yrgb[CH_BLUE],  yrgb[YRGB_Y], intens[CH_BLUE])  : 8'd0;
+
+// ---------------------------------------------------------------------
+// 15 kHz output.  The generator above draws every machine line twice,
+// on an odd line and the even one after it, at 25 MHz.  The odd one is
+// kept in a line buffer and sent once over both, at 12.5 MHz: a line of
+// 800 pixels in 3200 clkram cycles, 64 us.  A pixel is read four cycles
+// per pixel after the line starts and written two per pixel after, so the
+// read never overtakes the write.  The horizontal layout is the same in
+// pixels as at 31 kHz; vertically the 618 lines are 309.
+// ---------------------------------------------------------------------
+localparam PIX15_DIV    = 4;                      // clkram cycles per pixel
+localparam H15_ACTV     = 8;                      // first active pixel
+localparam H15_ACTV_END = H15_ACTV + HACTV;
+localparam H15_SYNC     = HACTV + HFP;            // 656
+localparam H15_SYNC_END = H15_SYNC + HSYNC;
+localparam H15_LAST     = HSTR - 1;
+localparam V15_ACTV     = VACTV / 2;              // 300
+localparam V15_SYNC     = V15_ACTV + 1;
+localparam V15_SYNC_END = V15_SYNC + VSYNC;
+localparam LINE_WORDS   = 1024;
+
+reg  [23:0] line15[0:LINE_WORDS-1];
+reg  [23:0] q15;
+reg  [ 9:0] h15  = 10'd0;
+reg  [ 1:0] ph15 = 2'd0;
+reg  [ 8:0] v15  = 9'd0;
+reg  [23:0] rgb15 = 24'd0;
+wire        h15_act = h15 >= H15_ACTV && h15 < H15_ACTV_END;
+
+always @(posedge clkram) begin
+   if(horz[0] && visible_x && vert[0]) line15[xs] <= {red31, green31, blue31};
+   q15 <= line15[h15 - H15_ACTV];
+end
+
+always @(posedge clkram) begin
+   ph15 <= ph15 + 2'd1;
+   if(ph15 == PIX15_DIV-1 && h15 != H15_LAST) h15 <= h15 + 10'd1;
+   // a 15 kHz line starts with each odd 31 kHz line: vert = 2 * v15 + 1
+   if(horz == 0 && vert[0]) begin
+      h15  <= 10'd0;
+      ph15 <= 2'd0;
+      v15  <= vert[9:1];
+   end
+   if(ph15 == PIX15_DIV-1) begin
+      rgb15  <= h15_act ? q15 : 24'd0;
+      hblank <= !h15_act;
+      vblank <= v15 >= V15_ACTV;
+      hsync  <= h15 >= H15_SYNC && h15 < H15_SYNC_END;
+      vsync  <= v15 >= V15_SYNC && v15 < V15_SYNC_END;
+   end
+end
+
+assign ce_pix = ph15 == PIX15_DIV-1;
+assign red    = rgb15[23:16];
+assign green  = rgb15[15:8];
+assign blue   = rgb15[7:0];
 
 endmodule
 
