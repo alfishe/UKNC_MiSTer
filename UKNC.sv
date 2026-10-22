@@ -68,6 +68,9 @@ localparam CONF_STR = {
 	"S2,DSK,Drive 2;",
 	"S3,DSK,Drive 3;",
 	"O[11],Floppy write protect,Off,On;",
+	"S4,IMG,Hard disk;",
+	"O[14],IDE cartridge,On,Off;",
+	"O[16:15],HDD sector delay,750 us,Off,375 us,1500 us;",
 	"-;",
 	"O[12],Kakave+ mouse,On,Off;",
 	"O[13],Kakave+ clock,On,Off;",
@@ -100,21 +103,24 @@ wire        ioctl_wr;
 wire [26:0] ioctl_addr;
 wire [15:0] ioctl_dout;
 
+// Image slots: the four floppy drives, then the hard disk
 localparam DRIVES = 4;
+localparam HDD    = DRIVES;
+localparam SLOTS  = DRIVES + 1;
 
-wire [DRIVES-1:0] img_mounted;
+wire [SLOTS-1:0]  img_mounted;
 wire              img_readonly;
 wire [63:0]       img_size;
-wire [31:0]       sd_lba[DRIVES];
-wire [DRIVES-1:0] sd_rd;
-wire [DRIVES-1:0] sd_wr;
-wire [DRIVES-1:0] sd_ack;
+wire [31:0]       sd_lba[SLOTS];
+wire [SLOTS-1:0]  sd_rd;
+wire [SLOTS-1:0]  sd_wr;
+wire [SLOTS-1:0]  sd_ack;
 wire [12:0]       sd_buff_addr;
 wire [15:0]       sd_buff_dout;
-wire [15:0]       sd_buff_din[DRIVES];
+wire [15:0]       sd_buff_din[SLOTS];
 wire              sd_buff_wr;
 
-hps_io #(.CONF_STR(CONF_STR), .WIDE(1), .VDNUM(DRIVES)) hps_io
+hps_io #(.CONF_STR(CONF_STR), .WIDE(1), .VDNUM(SLOTS)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
@@ -136,7 +142,7 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1), .VDNUM(DRIVES)) hps_io
 	.img_size(img_size),
 
 	.sd_lba(sd_lba),
-	.sd_blk_cnt('{DRIVES{6'd0}}),
+	.sd_blk_cnt('{SLOTS{6'd0}}),
 	.sd_rd(sd_rd),
 	.sd_wr(sd_wr),
 	.sd_ack(sd_ack),
@@ -328,6 +334,10 @@ wire [15:0]ppu_wbm_dat_i_cvx;
 wire       ppu_wbm_ack_i_cvx;
 wire [15:0]ppu_wbm_dat_i_kkv;
 wire       ppu_wbm_ack_i_kkv;
+wire [15:0]ppu_wbm_dat_i_ide;
+wire       ppu_wbm_ack_i_ide;
+wire       cart_sel;           // window block 0 in cartridge mode, slot 1
+wire [ 1:0]cart_bank;
 
 assign ppu_vm_virq_i = ppu_vm_virq_i_xm2 | ppu_vm_virq_i_vp;
 
@@ -338,10 +348,12 @@ assign ppu_wbm_dat_i = ppu_wbm_ack_i_xm2 ? ppu_wbm_dat_i_xm2 :
                        ppu_wbm_ack_i_128 ? ppu_wbm_dat_i_128 :
                        ppu_wbm_ack_i_abr ? ppu_wbm_dat_i_abr :
                        ppu_wbm_ack_i_cvx ? ppu_wbm_dat_i_cvx :
-                       ppu_wbm_ack_i_kkv ? ppu_wbm_dat_i_kkv : 16'o0;
+                       ppu_wbm_ack_i_kkv ? ppu_wbm_dat_i_kkv :
+                       ppu_wbm_ack_i_ide ? ppu_wbm_dat_i_ide : 16'o0;
 
 assign ppu_wbm_ack_i = ppu_wbm_ack_i_xm2 | ppu_wbm_ack_i_vp | ppu_wbm_ack_i_128 |
-                       ppu_wbm_ack_i_abr | ppu_wbm_ack_i_cvx | ppu_wbm_ack_i_kkv;
+                       ppu_wbm_ack_i_abr | ppu_wbm_ack_i_cvx | ppu_wbm_ack_i_kkv |
+                       ppu_wbm_ack_i_ide;
 
 assign ppu_wbi_dat_i = ppu_wbi_ack_i_xm2 ? ppu_wbi_dat_i_xm2 :
                        ppu_wbi_ack_i_vp  ? ppu_wbi_dat_i_vp  : 16'o0;
@@ -383,8 +395,8 @@ ppu_wb ppu1
 	.pin_wbi_stb_o(ppu_wbi_stb_o),
 
 	.pin_tmr_ena_o(pin_tmr_ena_o),
-	.pin_cart_sel_o(),
-	.pin_cart_bank_o(),
+	.pin_cart_sel_o(cart_sel),
+	.pin_cart_bank_o(cart_bank),
 
 	.rom_wr_clk   (clk_sys),
 	.rom_wr_addr  (ioctl_addr[14:1]),
@@ -499,20 +511,72 @@ fdd4 fdd
 
 	.sd_clk       (clk_sys),
 	.sd_lba       (fdd_lba),
-	.sd_rd        (sd_rd),
-	.sd_wr        (sd_wr),
-	.sd_ack       (sd_ack),
+	.sd_rd        (sd_rd[DRIVES-1:0]),
+	.sd_wr        (sd_wr[DRIVES-1:0]),
+	.sd_ack       (sd_ack[DRIVES-1:0]),
 	.sd_buff_addr (sd_buff_addr[7:0]),
 	.sd_buff_dout (sd_buff_dout),
 	.sd_buff_din  (fdd_buff_din),
 	.sd_buff_wr   (sd_buff_wr)
 );
 
-// One request is up at a time, so every drive gets the same LBA and buffer.
-assign sd_lba      = '{DRIVES{fdd_lba}};
-assign sd_buff_din = '{DRIVES{fdd_buff_din}};
+// One floppy request is up at a time, so every drive gets the same LBA
+// and buffer.
+genvar d;
+generate
+	for(d = 0; d < DRIVES; d++) begin : fdd_slot
+		assign sd_lba[d]      = fdd_lba;
+		assign sd_buff_din[d] = fdd_buff_din;
+	end
+endgenerate
 
-assign LED_DISK = {1'b0, disk_motor};
+///////////////////////   HARD DISK   ////////////////////////////
+
+// The IDE cartridge in ROM cartridge slot 1, on hps_io's last image slot.
+wire        hdd_active;
+
+// "HDD sector delay": badapple's Covox plays at its 24 kHz with 750 us
+localparam [5:0] DELAY_750US = 6'd30, DELAY_OFF = 6'd0, DELAY_375US = 6'd15, DELAY_1500US = 6'd60;
+wire [5:0] hdd_delay = (status[16:15] == 2'd0) ? DELAY_750US :
+                       (status[16:15] == 2'd1) ? DELAY_OFF   :
+                       (status[16:15] == 2'd2) ? DELAY_375US : DELAY_1500US;
+
+ide hdd
+(
+	.clk          (clk_25),
+	.rst          (ppu_vm_init_o),
+	.enable       (~status[14]),
+
+	.wbm_adr_i    (ppu_wbm_adr_o),
+	.wbm_dat_i    (ppu_wbm_dat_o),
+	.wbm_dat_o    (ppu_wbm_dat_i_ide),
+	.wbm_wre_i    (ppu_wbm_wre_o),
+	.wbm_sel_i    (ppu_wbm_sel_o),
+	.wbm_stb_i    (ppu_wbm_stb_o),
+	.wbm_ack_o    (ppu_wbm_ack_i_ide),
+
+	.cart_sel     (cart_sel),
+	.cart_bank    (cart_bank),
+
+	.hdd_delay    (hdd_delay),
+
+	.sd_clk       (clk_sys),
+	.img_mounted  (img_mounted[HDD]),
+	.img_readonly (img_readonly),
+	.img_size     (img_size),
+	.sd_lba       (sd_lba[HDD]),
+	.sd_rd        (sd_rd[HDD]),
+	.sd_wr        (sd_wr[HDD]),
+	.sd_ack       (sd_ack[HDD]),
+	.sd_buff_addr (sd_buff_addr[7:0]),
+	.sd_buff_dout (sd_buff_dout),
+	.sd_buff_din  (sd_buff_din[HDD]),
+	.sd_buff_wr   (sd_buff_wr),
+
+	.active       (hdd_active)
+);
+
+assign LED_DISK = {1'b0, disk_motor | hdd_active};
 
 vp1_128fdd vp128
 (

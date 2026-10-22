@@ -13,8 +13,9 @@
 //               is a PS/2 set 2 code in hex, E0xx for an extended one
 //   t=F:TEXT    type TEXT from frame F: letters, digits, space . , / - ;
 //               '|' is Enter
-//   dN=PATH     put an image in drive N (0-3)
-//   oN=PATH     write drive N's image to PATH at the end
+//   dN=PATH     put an image in slot N: 0-3 the floppy drives, 4 the
+//               hard disk
+//   oN=PATH     write slot N's image to PATH at the end
 //   lat=US      the HPS's delay before a sector transfer (default 200 us)
 //   +sdlog      print every sector transfer
 //
@@ -37,7 +38,8 @@ static const char ENTER_CHAR       = '|';
 
 static const long CLK_HZ           = 50000000;
 static const int  DEFAULT_LAT_US   = 200;
-static const int  DRIVES           = 4;
+static const int  DRIVES           = 5;   // image slots
+static const int  HDD              = 4;
 static const int  SECTOR_WORDS     = 256;
 static const int  SECTOR_BYTES     = 512;
 static const int  WORD_CYCLES      = 4;   // clk_sys cycles per buffer word
@@ -106,7 +108,7 @@ struct Hps {
          int req = top->sd_rd | top->sd_wr;
          for(int i = 0; i < DRIVES; i++) if((req >> i) & 1 && !disk[i].data.empty()) {
             drive = i;
-            lba   = top->sd_lba;
+            lba   = i == HDD ? top->sd_lba_hdd : top->sd_lba;
             state = HPS_LATENCY;
             wait  = latency;
             phase = (top->sd_wr >> i) & 1;   // remember the direction
@@ -139,7 +141,8 @@ struct Hps {
          if(phase == 0) top->sd_buff_addr = word;
          if(++phase == WORD_CYCLES) {
             unsigned char *s = sector();
-            if(s) { s[word * 2] = top->sd_buff_din & 0xFF; s[word * 2 + 1] = top->sd_buff_din >> 8; }
+            unsigned din = drive == HDD ? top->sd_buff_din_hdd : top->sd_buff_din;
+            if(s) { s[word * 2] = din & 0xFF; s[word * 2 + 1] = din >> 8; }
             phase = 0;
             if(++word == SECTOR_WORDS) { top->sd_ack = 0; state = HPS_GAP; wait = GAP_CYCLES; writes++; }
          }

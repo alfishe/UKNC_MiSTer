@@ -4,7 +4,7 @@ RTL = ../rtl
 SRC = sim_top.sv monitor.sv hps_io_sim.sv pll_sim.v ../UKNC.sv \
       $(RTL)/uknc_mem.sv $(RTL)/uknc_rom.sv $(RTL)/cpu.v $(RTL)/ppu.v \
       $(RTL)/wmrst.v $(RTL)/xm2-01.v $(RTL)/vp1_120.v $(RTL)/vp65.v \
-      $(RTL)/mkcolorreg.v $(RTL)/aberrant.v $(RTL)/covox.v $(RTL)/kakave.v $(RTL)/mixer.v \
+      $(RTL)/mkcolorreg.v $(RTL)/aberrant.v $(RTL)/covox.v $(RTL)/kakave.v $(RTL)/ide.v $(RTL)/mixer.v \
       $(RTL)/vp1-128fdd.v $(RTL)/fdd/fdd4.v $(RTL)/ay/ym2149.sv $(RTL)/uart/uart_rx.v \
       $(RTL)/uart/uart_tx.v $(RTL)/uart/uartfifo.v $(RTL)/vm2/vm2_wb.v \
       $(RTL)/vm2/vm2_plm.v $(RTL)/keyboard.sv

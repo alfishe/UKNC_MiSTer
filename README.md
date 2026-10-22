@@ -17,12 +17,16 @@ machine's behaviour.
 * Beeper, "Aberrant" AY-3-8910 card, Covox.
 * Serial port on the MiSTer UART.
 * Kakave+ cartridge: PS/2 mouse and real-time clock (set from the MiSTer).
+* IDE hard disk cartridge with the WD ROM, CHS and LBA28.
 
-Not yet: hard disk (IDE cartridge), 15 kHz video.
+Not yet: 15 kHz video.
 
 ## Installation
 Put the RBF in the root of the SD card and floppy images (`.dsk`, 800 KB:
 80 tracks, 2 sides, 10 sectors of 512 bytes) in `games/UKNC`.
+
+Hard disk images (`.img`, WD layout, plain or inverted) go in `games/UKNC`
+too.
 
 Another PPU ROM can be put in `games/UKNC/boot.rom` (32 KB); it is loaded
 over the built-in one at start-up.
@@ -32,6 +36,13 @@ Mount an image in drive 0, press `1` in the boot menu and then Enter (ВВОД).
 
 "Floppy write protect" in the OSD protects all drives; a read-only image file
 protects its own drive.
+
+Mount a hard disk image in "Hard disk" and boot from 2 (кассета ПЗУ) in
+the boot menu.  The cartridge is there while an image is mounted and "IDE
+cartridge" is on; its geometry is taken from the image's first sector.
+A read-only image file is write protected.  "HDD sector delay" slows the
+disk down for programs that time themselves by it: the default plays
+[Bad Apple](https://github.com/blairecas/badapple)'s sound at its 24 kHz.
 
 "Kakave+ mouse" and "Kakave+ clock" in the OSD hide the cartridge's mouse
 and clock from the software.
@@ -67,3 +78,5 @@ The options are listed in `sim/sim_main.cpp`.
 * tang-uknc's HDL in `rtl/`: MIT, see `rtl/LICENSE.tang-uknc.md`.
 * `rtl/vm2/`: K1801VM2 by 1801BM1, CC BY 3.0.
 * `rtl/ay/ym2149.sv`: MikeJ and Sorgelig, see the file.
+* `rtl/rom/ide_wdrom.hex`: the WD ROM of Oleg H.'s IDE controller
+  (`ide_wdromv0110.bin`, taken from tang-uknc).
