@@ -20,6 +20,8 @@ machine's behaviour.
 * IDE hard disk cartridge with the WD ROM, CHS and LBA28.
 * 15 kHz video, 640x288; doubled to 31 kHz with `forced_scandoubler=1`
   in `MiSTer.ini` or a Scandoubler Fx (HQ2x, CRT scanlines) in the OSD.
+* Colour, grey or green monitor: on a monochrome one the eight RGB codes
+  are eight levels of brightness, as UKNCBTL shows them.
 
 ## Installation
 Put the RBF in the root of the SD card and floppy images (`.dsk`, 800 KB:

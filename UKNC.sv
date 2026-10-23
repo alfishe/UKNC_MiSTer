@@ -76,6 +76,7 @@ localparam CONF_STR = {
 	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[19:17],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"O[21:20],Monitor,Colour,Grey,Green;",
 	"-;",
 	"O[3:2],Volume,Full,1/2,1/4,Mute;",
 	"O[4],AY stereo,ABC,Mono;",
@@ -272,6 +273,36 @@ localparam [2:0] SFX_NONE = 3'd0, SFX_HQ2X = 3'd1;
 wire [2:0] scale = status[19:17];
 assign VGA_SL = (scale > SFX_HQ2X) ? scale[1:0] - 2'd1 : 2'd0;
 
+// Monitor, as the OSD lists it.  On a monochrome monitor a pixel's
+// brightness is its RGB code read as a number, R the high bit: eight
+// levels, Y and the intensity bits play no part (UKNCBTL's grey palette).
+// A channel is on when uknc_mem gives it any level.
+localparam [1:0] MON_COLOUR = 2'd0, MON_GREY = 2'd1, MON_GREEN = 2'd2;
+wire [1:0] monitor = status[21:20];
+
+wire [2:0] grey_code = {red != 8'd0, green != 8'd0, blue != 8'd0};
+reg  [7:0] grey;
+always @(*) begin
+	case(grey_code)
+	3'd0: grey = 8'h00;
+	3'd1: grey = 8'h24;
+	3'd2: grey = 8'h48;
+	3'd3: grey = 8'h6C;
+	3'd4: grey = 8'h90;
+	3'd5: grey = 8'hB4;
+	3'd6: grey = 8'hD8;
+	3'd7: grey = 8'hFF;
+	endcase
+end
+
+// a green phosphor: the other two guns at a quarter of the level
+localparam GREEN_TINT_SHIFT = 2;
+wire [7:0] tint = grey >> GREEN_TINT_SHIFT;
+
+wire [7:0] mon_r = monitor == MON_COLOUR ? red   : monitor == MON_GREEN ? tint : grey;
+wire [7:0] mon_g = monitor == MON_COLOUR ? green : grey;
+wire [7:0] mon_b = monitor == MON_COLOUR ? blue  : monitor == MON_GREEN ? tint : grey;
+
 // The core's video is 15 kHz; the scan doubler makes it 31 kHz when the
 // MiSTer is set to (forced_scandoubler) or a Scandoubler Fx is chosen,
 // the scaler takes it as it is.
@@ -289,9 +320,9 @@ video_mixer #(.LINE_LENGTH(LINE_PIXELS), .HALF_DEPTH(0), .GAMMA(0)) video_mixer
 	.hq2x       (scale == SFX_HQ2X),
 	.gamma_bus  (gamma_bus),
 
-	.R          (red),
-	.G          (green),
-	.B          (blue),
+	.R          (mon_r),
+	.G          (mon_g),
+	.B          (mon_b),
 	.HSync      (hsync),
 	.VSync      (vsync),
 	.HBlank     (hblank),
