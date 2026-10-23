@@ -120,15 +120,15 @@ reg  vga_curs  = 0;
 reg  ppu_ll = 0;
 reg  ppu_hl = 0;
 reg  cpu_vl = 0;
-reg  curs_set = 1'b0;
+reg  curs_set = 1'b0;            // bit 0 of a fetched next-line word, one clkram
 reg [31:0] vga_regi = 0;         // line attributes
 reg [31:0] vga_regc = 0;         // line palette
 
-reg  curs_set_d = 1'b0;
+// Every line whose word has bit 0 set flips the cursor, as in UKNCBTL;
+// two such lines in a row flip it twice.
 always @(posedge clkram)begin
-    curs_set_d <= curs_set;
-    if(new_scr)                       vga_curs <= 1'b0;
-    else if(curs_set && !curs_set_d)  vga_curs <= ~vga_curs;
+    if(new_scr)       vga_curs <= 1'b0;
+    else if(curs_set) vga_curs <= ~vga_curs;
 end
 
 wire [6:0] xx = horz[10:4];
@@ -239,6 +239,7 @@ always @(posedge clkram)begin
    ppu_ll <= 1'b0;
    ppu_hl <= 1'b0;
    cpu_vl <= 1'b0;
+   curs_set <= 1'b0;
 
    if(!tx && !horz[0])begin
       case(vga_regi[21:20])
