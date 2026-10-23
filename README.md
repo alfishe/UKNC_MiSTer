@@ -92,6 +92,13 @@ only the last pressed of them.
 `obj_dir/Vsim_top FRAMES EVERY [options]` writes frames as PPM files.
 The options are listed in `sim/sim_main.cpp`.
 
+`sim/regress.py` runs the regression tests: boot, the palette test, the
+gamepad, floppy and hard disk writes, the cartridges.  Where it can, a
+test runs the same thing in UKNCBTL (`sim/ref/`, built from a clone of
+ukncbtl-qt) and compares the frame or the written image with it; the
+others check the frame against `sim/regress.golden`.  The software comes
+from a directory of your own, see the top of the script.
+
 ## Licences
 * The framework (`sys/`) and this core's own files: GPL v2 or later, see `LICENSE`.
 * tang-uknc's HDL in `rtl/`: MIT, see `rtl/LICENSE.tang-uknc.md`.

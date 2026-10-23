@@ -1,0 +1,7 @@
+# regress.py --update: md5 of the frames the model drew
+cartridge.frame 43f875f941f1b1d8f422aea577d1853b
+hdd_badapple.frame 3ddcb323c9e1ca71131d1909d1efb048
+menu.frame 7c9c9aeec1cf1f7cfc1c03b42a970676
+monitor.frame1 eb09c7294567511e21fcbc46116a301b
+monitor.frame2 2249ed4b4ca5f0b6a8bbe1fca2a9816c
+rt11.frame 38de0276670bbb53bc9c8095272c1286
