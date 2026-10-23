@@ -85,12 +85,12 @@ function [6:0] uknc_code(input ext, input [7:0] code);
       8'h0D: uknc_code = 7'o026;  // Tab        - ТАБ
       8'h29: uknc_code = 7'o113;  // Space
       8'h4E: uknc_code = 7'o175;  // -          - the '- =' key
-      8'h55: uknc_code = 7'o175;  // =
+      8'h55: uknc_code = 7'o110;  // =          - Ч ^ ('- =' is on '-')
       8'h54: uknc_code = 7'o036;  // [
       8'h5B: uknc_code = 7'o037;  // ]
-      8'h5D: uknc_code = 7'o136;  // backslash
+      8'h5D: uknc_code = 7'o136;  // backslash  - the key with Э
       8'h4C: uknc_code = 7'o007;  // ;
-      8'h52: uknc_code = 7'o155;  // '          - the key with Э
+      8'h52: uknc_code = 7'o155;  // '          - the key with Ъ
       8'h0E: uknc_code = 7'o077;  // `
       8'h41: uknc_code = 7'o117;  // ,
       8'h49: uknc_code = 7'o135;  // .
@@ -135,7 +135,7 @@ function [6:0] uknc_code(input ext, input [7:0] code);
       8'h6B: uknc_code = 7'o116;  // Left
       8'h72: uknc_code = 7'o134;  // Down
       8'h75: uknc_code = 7'o154;  // Up
-      8'h4A: uknc_code = 7'o173;  // KP /
+      8'h4A: uknc_code = 7'o005;  // KP /       - keypad ','
       8'h5A: uknc_code = 7'o166;  // KP Enter
       8'h14: uknc_code = 7'o046;  // Right Ctrl - УПР
       8'h11: uknc_code = 7'o066;  // Right Alt  - ГРАФ

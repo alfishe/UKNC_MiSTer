@@ -67,6 +67,8 @@ and clock from the software.
 | Left Alt        | АЛФ         |
 | Right Alt       | ГРАФ        |
 | Keypad Enter    | keypad ВВОД |
+| Keypad /        | keypad ,    |
+| =               | Ч ^         |
 
 ## Simulation
 `sim/` holds a Verilator model of the core; `make` there, then
