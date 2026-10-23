@@ -11,7 +11,7 @@
 // options:
 //   F:KEY       press a key at frame F, let it go KEY_HOLD_FRAMES later; KEY
 //               is a PS/2 set 2 code in hex, E0xx for an extended one
-//   t=F:TEXT    type TEXT from frame F: letters, digits, space . , / - ;
+//   t=F:TEXT    type TEXT from frame F: letters, digits, space . , / - ; :
 //               '|' is Enter
 //   jF:HEX      set the gamepad's buttons (hps_io joystick_0 bits) at frame F
 //   iIDX=PATH   download a file at start-up with ioctl index IDX (hex):
@@ -21,6 +21,7 @@
 //   oN=PATH     write slot N's image to PATH at the end
 //   lat=US      the HPS's delay before a sector transfer (default 200 us)
 //   +sdlog      print every sector transfer
+//   +status=HEX the OSD's status bits (hex), zero without
 //
 #include <cstdio>
 #include <cstdlib>
@@ -88,6 +89,7 @@ static int ps2_of(char c)
    case ',': return 0x41;
    case '/': return 0x4A;
    case '-': return 0x4E;
+   case ':': return 0x7C;   // keypad *, the UKNC key with ':'
    case ENTER_CHAR: return PS2_ENTER;
    }
    return 0;
@@ -282,7 +284,7 @@ int main(int argc, char **argv)
       old_de = top->VGA_DE;
 
       if(top->VGA_VS && !old_vs) {
-         if(y > h) h = y;
+         h = y;   // this frame's lines: the first one after reset can be longer
          if(frame % every == every - 1 && w && h) {
             char name[64];
             snprintf(name, sizeof name, "frame%04d.ppm", frame);

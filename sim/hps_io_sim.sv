@@ -1,9 +1,9 @@
 //
 // hps_io_sim.sv
 //
-// Simulation stand-in for sys/hps_io.sv: no OSD.  Downloads, keys, the
-// gamepad and the disk side of the sector interface are sim_top's ports,
-// driven by the testbench.
+// Simulation stand-in for sys/hps_io.sv: no OSD (the status bits come
+// from +status=).  Downloads, keys, the gamepad and the disk side of the
+// sector interface are sim_top's ports, driven by the testbench.
 //
 module hps_io #(parameter CONF_STR = "", parameter WIDE = 0, parameter VDNUM = 1)
 (
@@ -47,7 +47,10 @@ module hps_io #(parameter CONF_STR = "", parameter WIDE = 0, parameter VDNUM = 1
 assign buttons        = 0;
 assign forced_scandoubler = 0;
 assign gamma_bus[20:0] = 0;
-assign status         = 0;
+// the OSD's settings: +status=HEX on the command line, all zero without
+reg [127:0] status_arg = 0;
+initial if(!$value$plusargs("status=%h", status_arg)) status_arg = 0;
+assign status         = status_arg;
 assign ioctl_download = sim_top.ioctl_download;
 assign ioctl_index    = sim_top.ioctl_index;
 assign ioctl_wr       = sim_top.ioctl_wr;
