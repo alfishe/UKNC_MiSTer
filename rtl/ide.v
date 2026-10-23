@@ -11,8 +11,9 @@
 // module answers:
 //
 //   0100000-0107777   the ROM, bank R177054[2:1] - 1: the lower 4 KB of
-//                     each 8 KB bank of the 24 KB image
-//                     (rom/ide_wdrom.hex, from ide_wdromv0110.bin)
+//                     each 8 KB bank of the 24 KB image, which is
+//                     cartridge.sv's slot 1 (the built-in WD ROM,
+//                     ide_wdromv0110.bin, or a file loaded over it)
 //   0110000-0117777   the IDE registers, which shadow the upper 4 KB of
 //                     every bank
 //
@@ -60,7 +61,8 @@ module ide
 
     // the window, from ppu.v
     input             cart_sel,     // block 0 is in cartridge mode, slot 1
-    input      [ 1:0] cart_bank,    // R177054[2:1], 1..3
+    input      [15:0] rom_dout,     // the ROM word at the bus address, from cartridge.sv
+    output reg        present = 1'b0, // mounted, probed and enabled: slot 1 is this cartridge
 
     input      [ 5:0] hdd_delay,    // stretch of a data read, ~25 us a sector per step
 
@@ -102,24 +104,14 @@ localparam [15:0] MAX_CYL = 16'hFFFF;
 //------------------------------------------------------------------------
 // Decode
 //------------------------------------------------------------------------
-reg  present = 1'b0;                                     // mounted, probed and enabled
 wire in_window = (wbm_adr_i[15:13] == 3'b100);           // 0100000-0117777
 wire ce        = wbm_stb_i && in_window && cart_sel && present;
 wire is_io     = wbm_adr_i[12];                          // 0110000-0117777
 wire [2:0] ridx = ~wbm_adr_i[3:1];                       // register index
-wire [1:0] bank_m1 = cart_bank - 2'd1;
 reg  ce_old = 1'b0;
 
-//------------------------------------------------------------------------
-// The ROM: 3 banks of 2 K words.  Its output is valid one clock after
-// the address settled, which is before the second clock of any strobe.
-// The image path is relative to the directory the tool runs in.
-//------------------------------------------------------------------------
-localparam ROM_WORDS = 6144;
-reg [15:0] rom[0:ROM_WORDS-1];
-reg [15:0] rom_dout;
-initial $readmemh("rtl/rom/ide_wdrom.hex", rom);
-always @(posedge clk) rom_dout <= rom[{bank_m1, wbm_adr_i[11:1]}];
+// The ROM word comes from cartridge.sv one clock after the address
+// settled, which is before the second clock of any strobe.
 
 //------------------------------------------------------------------------
 // The sector buffers, one each way as in fdd4.v.  Reads: two banks of

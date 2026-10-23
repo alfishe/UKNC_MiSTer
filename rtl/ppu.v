@@ -33,6 +33,7 @@ module ppu_wb(
     pin_tmr_ena_o,
 
     pin_cart_sel_o,
+    pin_cart_slot2_o,
     pin_cart_bank_o,
 
     rom_wr_clk,
@@ -72,9 +73,11 @@ input        pin_wbi_ack_i;
 output       pin_wbi_stb_o;
 
 output       pin_tmr_ena_o;
-// Window block 0 (0100000-0117777) in ROM-cartridge mode, slot 1, and the
-// bank R177054[2:1] - for the IDE cartridge in src/ide/ide.v.  Sep 2026.
+// Window block 0 (0100000-0117777) in ROM-cartridge mode, the slot
+// R177054[3] and the bank R177054[2:1] - for the ROM cartridges in
+// cartridge.sv and the IDE cartridge in ide.v (MiSTer port).
 output       pin_cart_sel_o;
+output       pin_cart_slot2_o;
 output [ 1:0]pin_cart_bank_o;
 // System ROM loading from the HPS (MiSTer port)
 input        rom_wr_clk;
@@ -161,9 +164,10 @@ assign pin_wbm_stb_o = wbm_stb_o;
 assign pin_wbi_stb_o = wbi_una_o ? 1'b0 : wbi_stb_o;
 assign pin_tmr_ena_o = R177054[9];
 // Cartridge mode: not the firmware ROM (bit 0), not RAM (bit 4), a bank
-// named in bits 2:1, slot 1 (bit 3 clear).  Slot 2 is empty here.
-wire   cart_sel = ~R177054[0] & ~R177054[4] & (|R177054[2:1]) & ~R177054[3];
-assign pin_cart_sel_o  = cart_sel;
+// named in bits 2:1, the slot in bit 3.
+wire   cart_sel = ~R177054[0] & ~R177054[4] & (|R177054[2:1]);
+assign pin_cart_sel_o   = cart_sel;
+assign pin_cart_slot2_o = R177054[3];
 assign pin_cart_bank_o = R177054[2:1];
 //========================================================================================
 // VIRQ
@@ -292,8 +296,9 @@ always @(posedge vm_clk_p)
                 rom      <= R177054[0];
                 // Writes used to fall through to the RAM behind the window
                 // whatever the mode.  In cartridge mode they are IDE
-                // register writes and must not land in RAM at 0110000+,
-                // which other software may be using through the window.
+                // register writes or go to a ROM and must not land in RAM
+                // at 0100000+, which other software may be using through
+                // the window.
                 ram_wr   <= wbm_we_o & ~cart_sel;
                 ram_rd   <=~(R177054[0]|wbm_we_o) & R177054[4];
                 ask      <=~wbm_we_o & R177054[0];

@@ -1,9 +1,9 @@
 //
 // hps_io_sim.sv
 //
-// Simulation stand-in for sys/hps_io.sv: no OSD and no downloads (the ROM
-// comes from its hex file).  Keys, the gamepad and the disk side of the
-// sector interface are sim_top's ports, driven by the testbench.
+// Simulation stand-in for sys/hps_io.sv: no OSD.  Downloads, keys, the
+// gamepad and the disk side of the sector interface are sim_top's ports,
+// driven by the testbench.
 //
 module hps_io #(parameter CONF_STR = "", parameter WIDE = 0, parameter VDNUM = 1)
 (
@@ -48,11 +48,11 @@ assign buttons        = 0;
 assign forced_scandoubler = 0;
 assign gamma_bus[20:0] = 0;
 assign status         = 0;
-assign ioctl_download = 0;
-assign ioctl_index    = 0;
-assign ioctl_wr       = 0;
-assign ioctl_addr     = 0;
-assign ioctl_dout     = 0;
+assign ioctl_download = sim_top.ioctl_download;
+assign ioctl_index    = sim_top.ioctl_index;
+assign ioctl_wr       = sim_top.ioctl_wr;
+assign ioctl_addr     = sim_top.ioctl_addr;
+assign ioctl_dout     = sim_top.ioctl_dout;
 assign ps2_key        = sim_top.ps2_key;
 assign joystick_0     = sim_top.joystick;
 assign ps2_mouse      = 0;

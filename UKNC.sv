@@ -69,6 +69,9 @@ localparam CONF_STR = {
 	"O[11],Floppy write protect,Off,On;",
 	"S4,IMG,Hard disk;",
 	"O[14],IDE cartridge,On,Off;",
+	"-;",
+	"FC1,ROM,Cartridge 1;",
+	"FC2,ROM,Cartridge 2;",
 	"O[16:15],HDD sector delay,750 us,Off,375 us,1500 us;",
 	"-;",
 	"O[12],Kakave+ mouse,On,Off;",
@@ -202,10 +205,18 @@ wire ppuclk_n = ~clk_ppu;
 localparam ROM_INDEX = 8'd0;          // boot.rom
 localparam ROM_BYTES = 32768;
 
+// The ROM cartridges: boot1.rom and boot2.rom at start-up (the HPS sends
+// bootN.rom as index N << 6), or the OSD's FC1 and FC2.
+localparam CART1_INDEX = 8'd1, CART1_BOOT_INDEX = 8'h40;
+localparam CART2_INDEX = 8'd2, CART2_BOOT_INDEX = 8'h80;
+
 wire rom_loading = ioctl_download && ioctl_index == ROM_INDEX;
 wire rom_wr_en   = rom_loading && ioctl_wr && ioctl_addr < ROM_BYTES;
 
-wire reset = RESET | status[0] | buttons[1] | rom_loading;
+wire cart1_loading = ioctl_download && (ioctl_index == CART1_INDEX || ioctl_index == CART1_BOOT_INDEX);
+wire cart2_loading = ioctl_download && (ioctl_index == CART2_INDEX || ioctl_index == CART2_BOOT_INDEX);
+
+wire reset = RESET | status[0] | buttons[1] | rom_loading | cart1_loading | cart2_loading;
 
 ///////////////////////   MEMORY AND VIDEO   /////////////////////
 
@@ -410,7 +421,10 @@ wire [15:0]ppu_wbm_dat_i_kkv;
 wire       ppu_wbm_ack_i_kkv;
 wire [15:0]ppu_wbm_dat_i_ide;
 wire       ppu_wbm_ack_i_ide;
-wire       cart_sel;           // window block 0 in cartridge mode, slot 1
+wire [15:0]ppu_wbm_dat_i_cart;
+wire       ppu_wbm_ack_i_cart;
+wire       cart_sel;           // window block 0 in cartridge mode
+wire       cart_slot2;         // and the slot is 2
 wire [ 1:0]cart_bank;
 
 assign ppu_vm_virq_i = ppu_vm_virq_i_xm2 | ppu_vm_virq_i_vp;
@@ -423,11 +437,12 @@ assign ppu_wbm_dat_i = ppu_wbm_ack_i_xm2 ? ppu_wbm_dat_i_xm2 :
                        ppu_wbm_ack_i_abr ? ppu_wbm_dat_i_abr :
                        ppu_wbm_ack_i_cvx ? ppu_wbm_dat_i_cvx :
                        ppu_wbm_ack_i_kkv ? ppu_wbm_dat_i_kkv :
-                       ppu_wbm_ack_i_ide ? ppu_wbm_dat_i_ide : 16'o0;
+                       ppu_wbm_ack_i_ide ? ppu_wbm_dat_i_ide :
+                       ppu_wbm_ack_i_cart ? ppu_wbm_dat_i_cart : 16'o0;
 
 assign ppu_wbm_ack_i = ppu_wbm_ack_i_xm2 | ppu_wbm_ack_i_vp | ppu_wbm_ack_i_128 |
                        ppu_wbm_ack_i_abr | ppu_wbm_ack_i_cvx | ppu_wbm_ack_i_kkv |
-                       ppu_wbm_ack_i_ide;
+                       ppu_wbm_ack_i_ide | ppu_wbm_ack_i_cart;
 
 assign ppu_wbi_dat_i = ppu_wbi_ack_i_xm2 ? ppu_wbi_dat_i_xm2 :
                        ppu_wbi_ack_i_vp  ? ppu_wbi_dat_i_vp  : 16'o0;
@@ -470,6 +485,7 @@ ppu_wb ppu1
 
 	.pin_tmr_ena_o(pin_tmr_ena_o),
 	.pin_cart_sel_o(cart_sel),
+	.pin_cart_slot2_o(cart_slot2),
 	.pin_cart_bank_o(cart_bank),
 
 	.rom_wr_clk   (clk_sys),
@@ -606,8 +622,37 @@ endgenerate
 
 ///////////////////////   HARD DISK   ////////////////////////////
 
-// The IDE cartridge in ROM cartridge slot 1, on hps_io's last image slot.
+// The ROM cartridges, and the IDE cartridge in slot 1 on hps_io's last
+// image slot.
 wire        hdd_active;
+wire        ide_present;
+wire [15:0] wd_rom;
+
+cartridge cart
+(
+	.clk          (clk_25),
+	.rst          (ppu_vm_init_o),
+
+	.wbm_adr_i    (ppu_wbm_adr_o),
+	.wbm_wre_i    (ppu_wbm_wre_o),
+	.wbm_stb_i    (ppu_wbm_stb_o),
+	.wbm_dat_o    (ppu_wbm_dat_i_cart),
+	.wbm_ack_o    (ppu_wbm_ack_i_cart),
+
+	.cart_sel     (cart_sel),
+	.cart_slot2   (cart_slot2),
+	.cart_bank    (cart_bank),
+
+	.ide_present  (ide_present),
+	.rom_dout     (wd_rom),
+
+	.load_clk     (clk_sys),
+	.load_slot1   (cart1_loading),
+	.load_slot2   (cart2_loading),
+	.load_addr    (ioctl_addr),
+	.load_data    (ioctl_dout),
+	.load_wr      (ioctl_wr)
+);
 
 // "HDD sector delay": badapple's Covox plays at its 24 kHz with 750 us
 localparam [5:0] DELAY_750US = 6'd30, DELAY_OFF = 6'd0, DELAY_375US = 6'd15, DELAY_1500US = 6'd60;
@@ -629,8 +674,9 @@ ide hdd
 	.wbm_stb_i    (ppu_wbm_stb_o),
 	.wbm_ack_o    (ppu_wbm_ack_i_ide),
 
-	.cart_sel     (cart_sel),
-	.cart_bank    (cart_bank),
+	.cart_sel     (cart_sel & ~cart_slot2),
+	.rom_dout     (wd_rom),
+	.present      (ide_present),
 
 	.hdd_delay    (hdd_delay),
 

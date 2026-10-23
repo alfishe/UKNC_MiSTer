@@ -14,6 +14,8 @@
 //   t=F:TEXT    type TEXT from frame F: letters, digits, space . , / - ;
 //               '|' is Enter
 //   jF:HEX      set the gamepad's buttons (hps_io joystick_0 bits) at frame F
+//   iIDX=PATH   download a file at start-up with ioctl index IDX (hex):
+//               40 is boot1.rom (cartridge 1), 80 boot2.rom (cartridge 2)
 //   dN=PATH     put an image in slot N: 0-3 the floppy drives, 4 the
 //               hard disk
 //   oN=PATH     write slot N's image to PATH at the end
@@ -55,6 +57,20 @@ static const int PS2_ENTER   = 0x5A;
 
 struct KeyEvent { int frame; int code; bool pressed; };
 struct PadEvent { int frame; unsigned buttons; };
+struct Download { int index; std::vector<unsigned char> data; };
+
+static const int DOWNLOAD_WORD_CYCLES = 4;   // clk_sys cycles per ioctl word
+
+static bool read_file(const char *path, std::vector<unsigned char> &data)
+{
+   FILE *fp = fopen(path, "rb");
+   if(!fp) { perror(path); return false; }
+   fseek(fp, 0, SEEK_END); data.resize(ftell(fp)); fseek(fp, 0, SEEK_SET);
+   bool ok = fread(data.data(), 1, data.size(), fp) == data.size();
+   if(!ok) perror(path);
+   fclose(fp);
+   return ok;
+}
 
 static int ps2_of(char c)
 {
@@ -168,6 +184,7 @@ int main(int argc, char **argv)
    int lat_us = DEFAULT_LAT_US;
    std::vector<KeyEvent> keys;
    std::vector<PadEvent> pads;
+   std::vector<Download> downloads;
 
    for(int i = 3; i < argc; i++) {
       const char *a = argv[i];
@@ -177,11 +194,11 @@ int main(int argc, char **argv)
       else if((a[0] == 'd' || a[0] == 'o') && a[1] >= '0' && a[1] < '0' + DRIVES && a[2] == '=') {
          Disk &d = hps.disk[a[1] - '0'];
          if(a[0] == 'o') { d.save = a + 3; continue; }
-         FILE *fp = fopen(a + 3, "rb");
-         if(!fp) { perror(a + 3); return 1; }
-         fseek(fp, 0, SEEK_END); d.data.resize(ftell(fp)); fseek(fp, 0, SEEK_SET);
-         if(fread(d.data.data(), 1, d.data.size(), fp) != d.data.size()) { perror(a + 3); return 1; }
-         fclose(fp);
+         if(!read_file(a + 3, d.data)) return 1;
+      }
+      else if(a[0] == 'i' && (n = 0, sscanf(a + 1, "%x=%n", &k, &n)) == 1 && n) {
+         downloads.push_back({k, {}});
+         if(!read_file(a + 1 + n, downloads.back().data)) return 1;
       }
       else if(a[0] == 'j' && sscanf(a + 1, "%d:%x", &f, &k) == 2) pads.push_back({f, (unsigned)k});
       else if(!strncmp(a, "t=", 2) && sscanf(a + 2, "%d:%n", &f, &n) == 1) {
@@ -210,6 +227,8 @@ int main(int argc, char **argv)
    top->RESET   = 1;
    top->ps2_key = 0;
    top->joystick = 0;
+   top->ioctl_download = 0;
+   top->ioctl_wr = 0;
 
    auto tick = [&]() {
       hps.step(top);
@@ -223,6 +242,21 @@ int main(int argc, char **argv)
       tick();
       if(cycle == RESET_CYCLES) {
          top->RESET = 0;
+         // the files the HPS sends when the core starts, a word at a time
+         for(const Download &dl : downloads) {
+            top->ioctl_index    = dl.index;
+            top->ioctl_download = 1;
+            for(size_t b = 0; b < dl.data.size(); b += 2) {
+               top->ioctl_addr = b;
+               top->ioctl_dout = dl.data[b] | (b + 1 < dl.data.size() ? dl.data[b + 1] << 8 : 0);
+               top->ioctl_wr   = 1;
+               tick();
+               top->ioctl_wr   = 0;
+               for(int c = 1; c < DOWNLOAD_WORD_CYCLES; c++) tick();
+            }
+            top->ioctl_download = 0;
+            tick();
+         }
          // mount the images, one drive per cycle as the HPS does
          for(int i = 0; i < DRIVES; i++) if(!hps.disk[i].data.empty()) {
             top->img_size    = hps.disk[i].data.size();

@@ -18,6 +18,7 @@ machine's behaviour.
 * Serial port on the MiSTer UART.
 * Kakave+ cartridge: PS/2 mouse and real-time clock (set from the MiSTer).
 * IDE hard disk cartridge with the WD ROM, CHS and LBA28.
+* Two ROM cartridge slots, loaded from files.
 * Gamepad mapped to keys.
 * 15 kHz video, 640x288; doubled to 31 kHz with `forced_scandoubler=1`
   in `MiSTer.ini` or a Scandoubler Fx (HQ2x, CRT scanlines) in the OSD.
@@ -33,6 +34,9 @@ too.
 
 Another PPU ROM can be put in `games/UKNC/boot.rom` (32 KB); it is loaded
 over the built-in one at start-up.
+ROM cartridges (24 KB images, as UKNCBTL takes them) go in `games/UKNC`
+as `boot1.rom` and `boot2.rom` for slots 1 and 2, loaded at start-up, or
+are chosen in "Cartridge 1" and "Cartridge 2" in the OSD.
 
 ## Usage
 Mount an image in drive 0, press `1` in the boot menu and then Enter (ВВОД).
@@ -49,6 +53,11 @@ disk down for programs that time themselves by it: the default plays
 
 "Kakave+ mouse" and "Kakave+ clock" in the OSD hide the cartridge's mouse
 and clock from the software.
+
+A ROM cartridge starts from 2 (кассета ПЗУ) in the boot menu with its slot
+number.  Slot 1 is the IDE cartridge's while it is there: a file loaded
+into slot 1 then replaces the built-in WD ROM (another WD ROM version),
+and a plain ROM cartridge goes into slot 2.
 
 The gamepad's D-pad is the arrow keys, or keypad 8, 4, 6 and 2 ("Gamepad"
 in the OSD); A is Space, B ВВОД, X УПР and Y АР2.  The keyboard's rows

@@ -10,6 +10,13 @@ module sim_top
    input  [10:0] ps2_key /*verilator public*/,
    input  [31:0] joystick /*verilator public*/,
 
+   // file downloads (boot.rom, cartridges), as hps_io's ioctl
+   input         ioctl_download,
+   input  [ 7:0] ioctl_index,
+   input         ioctl_wr,
+   input  [26:0] ioctl_addr,
+   input  [15:0] ioctl_dout,
+
    // the HPS side of the sector interface (see hps_io_sim.sv): slots 0-3
    // are the floppies, which share an LBA and a buffer, 4 the hard disk
    input  [ 4:0] img_mounted,
