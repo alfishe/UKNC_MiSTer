@@ -19,7 +19,7 @@ machine's behaviour.
 * Kakave+ cartridge: PS/2 mouse and real-time clock (set from the MiSTer).
 * IDE hard disk cartridge with the WD ROM, CHS and LBA28.
 * 15 kHz video, 640x288; doubled to 31 kHz with `forced_scandoubler=1`
-  in `MiSTer.ini`.
+  in `MiSTer.ini` or a Scandoubler Fx (HQ2x, CRT scanlines) in the OSD.
 
 ## Installation
 Put the RBF in the root of the SD card and floppy images (`.dsk`, 800 KB:

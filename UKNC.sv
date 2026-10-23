@@ -38,7 +38,6 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;
 
-assign VGA_SL = 0;
 assign VGA_F1 = 0;
 assign VGA_SCALER  = 0;
 assign VGA_DISABLE = 0;
@@ -76,6 +75,7 @@ localparam CONF_STR = {
 	"O[13],Kakave+ clock,On,Off;",
 	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
+	"O[19:17],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
 	"O[3:2],Volume,Full,1/2,1/4,Mute;",
 	"O[4],AY stereo,ABC,Mono;",
@@ -266,8 +266,15 @@ uknc_mem ram1
 	.ppu_asck (askn_ppu_i)
 );
 
+// Scandoubler Fx, as the OSD lists it: none, HQ2x, then scanlines at 25,
+// 50 and 75% - VGA_SL 1..3 for options 2..4.
+localparam [2:0] SFX_NONE = 3'd0, SFX_HQ2X = 3'd1;
+wire [2:0] scale = status[19:17];
+assign VGA_SL = (scale > SFX_HQ2X) ? scale[1:0] - 2'd1 : 2'd0;
+
 // The core's video is 15 kHz; the scan doubler makes it 31 kHz when the
-// MiSTer is set to (forced_scandoubler), the scaler takes it as it is.
+// MiSTer is set to (forced_scandoubler) or a Scandoubler Fx is chosen,
+// the scaler takes it as it is.
 localparam LINE_PIXELS = 640;
 
 assign CLK_VIDEO = clk_sys;
@@ -278,8 +285,8 @@ video_mixer #(.LINE_LENGTH(LINE_PIXELS), .HALF_DEPTH(0), .GAMMA(0)) video_mixer
 	.CE_PIXEL   (CE_PIXEL),
 	.ce_pix     (ce_pix),
 
-	.scandoubler(forced_scandoubler),
-	.hq2x       (1'b0),
+	.scandoubler(scale != SFX_NONE || forced_scandoubler),
+	.hq2x       (scale == SFX_HQ2X),
 	.gamma_bus  (gamma_bus),
 
 	.R          (red),
