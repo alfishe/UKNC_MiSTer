@@ -61,7 +61,7 @@ assign VIDEO_ARY = (!ar) ? 12'd3 : 12'd0;
 
 `include "build_id.v"
 localparam CONF_STR = {
-	"UKNC;;",
+	"UKNC;UART19200;",
 	"-;",
 	"S0,DSK,Drive 0;",
 	"S1,DSK,Drive 1;",
