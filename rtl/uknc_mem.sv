@@ -434,14 +434,9 @@ wire [ 2:0]tx  = vga_regi[21:20] == 0 ? xs[2:0] :
                  vga_regi[21:20] == 1 ? xs[3:1] :
                  vga_regi[21:20] == 2 ? xs[4:2] : xs[5:3];
 
-reg  [ 2:0]tripl = 0;
-
-always @(posedge clkram)
-    if(horz[0])begin
-        tripl[0] <= blue_data [tx];
-        tripl[1] <= green_data[tx];
-        tripl[2] <= red_data  [tx];
-    end
+// The pixel at xs, straight from the byte loaded on the even clkram before
+// it; a register here put pixel xs - 1 into line15[xs].
+wire [ 2:0]tripl = {red_data[tx], green_data[tx], blue_data[tx]};
 
 reg  [ 3:0]cvt;
 
