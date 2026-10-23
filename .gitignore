@@ -41,3 +41,5 @@ c5_pin_model_dump.txt
 sim/obj_dir
 sim/*.ppm
 !sim/build_id.v
+sim/ref/ref
+sim/ref/colors.inc
