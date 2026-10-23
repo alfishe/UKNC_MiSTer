@@ -230,24 +230,24 @@ always @(posedge vm_clk_p)
 // write write write write write write write write write write write write write write
 //========================================================================================
                 if(wbm_we_o)begin
-                    if(wbm_adr_o[9:1] == 'o270)begin
+                    if(wbm_adr_o[12:1] == 'o7270)begin
                         ask <= 1'b0;
                     end else
-                    if(wbm_adr_o[9:1] == 'o271)begin
+                    if(wbm_adr_o[12:1] == 'o7271)begin
                         ask <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o272)begin
+                    if(wbm_adr_o[12:1] == 'o7272)begin
                         ask <= 1'b0;
                     end else
-                    if(wbm_adr_o[9:1] == 'o273)begin
+                    if(wbm_adr_o[12:1] == 'o7273)begin
                         ask <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o320)begin
+                    if(wbm_adr_o[12:1] == 'o7320)begin
                         R176640[15:8]  <= wbm_sel_o[1] ? wbm_dat_o[15:8] : 8'o0;
                         R176640[ 7:0]  <= wbm_sel_o[0] ? wbm_dat_o[ 7:0] : 8'o0;
                         ask            <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o321)begin
+                    if(wbm_adr_o[12:1] == 'o7321)begin
                         ramd_rio[31:24] <= wbm_sel_o[1] ? wbm_dat_o[15:8] : R176642[15:8];
                         ramd_rio[23:16] <= wbm_sel_o[0] ? wbm_dat_o[ 7:0] : R176642[ 7:0];
                         R176642[15:8]   <= wbm_sel_o[1] ? wbm_dat_o[15:8] : R176642[15:8];
@@ -270,50 +270,30 @@ always @(posedge vm_clk_p)
 //========================================================================================
 // read read read read read read read read read read read read read read read read read
 //========================================================================================
-                    if(wbm_adr_o[9:1] == 'o270)begin
+                    if(wbm_adr_o[12:1] == 'o7270)begin
                         data_rio     <= 16'o0;
                         ask          <= 1'b1;
                         rio          <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o271)begin
+                    if(wbm_adr_o[12:1] == 'o7271)begin
                         data_rio     <= 16'o0;
                         ask          <= 1'b1;
                         rio          <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o272)begin
+                    if(wbm_adr_o[12:1] == 'o7272)begin
                         ask <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o273)begin
+                    if(wbm_adr_o[12:1] == 'o7273)begin
                         data_rio     <= 16'o0;
                         ask          <= 1'b1;
                         rio          <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o274)begin
-                        data_rio     <= 16'o0;
-                        ask          <= 1'b1;
-                        rio          <= 1'b1;
-                    end else
-                    if(wbm_adr_o[9:1] == 'o275)begin
-                        data_rio     <= 16'o0;
-                        ask          <= 1'b1;
-                        rio          <= 1'b1;
-                    end else
-                    if(wbm_adr_o[9:1] == 'o276)begin
-                        data_rio     <= 16'o0;
-                        ask          <= 1'b1;
-                        rio          <= 1'b1;
-                    end else
-                    if(wbm_adr_o[9:1] == 'o277)begin
-                        data_rio     <= 16'o0;
-                        ask          <= 1'b1;
-                        rio          <= 1'b1;
-                    end else
-                    if(wbm_adr_o[9:1] == 'o320)begin
+                    if(wbm_adr_o[12:1] == 'o7320)begin
                         data_rio     <= R176640;
                         rio          <= 1'b1;
                         ask          <= 1'b1;
                     end else
-                    if(wbm_adr_o[9:1] == 'o321)begin
+                    if(wbm_adr_o[12:1] == 'o7321)begin
                         addr_ram     <= R176640;
                         mask_rio     <= 4'b0000;
                         rio_ram_rd   <= 1'b1;
