@@ -13,6 +13,7 @@
 //               is a PS/2 set 2 code in hex, E0xx for an extended one
 //   t=F:TEXT    type TEXT from frame F: letters, digits, space . , / - ;
 //               '|' is Enter
+//   jF:HEX      set the gamepad's buttons (hps_io joystick_0 bits) at frame F
 //   dN=PATH     put an image in slot N: 0-3 the floppy drives, 4 the
 //               hard disk
 //   oN=PATH     write slot N's image to PATH at the end
@@ -53,6 +54,7 @@ static const int PS2_EXT     = 1 << 8;
 static const int PS2_ENTER   = 0x5A;
 
 struct KeyEvent { int frame; int code; bool pressed; };
+struct PadEvent { int frame; unsigned buttons; };
 
 static int ps2_of(char c)
 {
@@ -165,6 +167,7 @@ int main(int argc, char **argv)
    Hps hps;
    int lat_us = DEFAULT_LAT_US;
    std::vector<KeyEvent> keys;
+   std::vector<PadEvent> pads;
 
    for(int i = 3; i < argc; i++) {
       const char *a = argv[i];
@@ -180,6 +183,7 @@ int main(int argc, char **argv)
          if(fread(d.data.data(), 1, d.data.size(), fp) != d.data.size()) { perror(a + 3); return 1; }
          fclose(fp);
       }
+      else if(a[0] == 'j' && sscanf(a + 1, "%d:%x", &f, &k) == 2) pads.push_back({f, (unsigned)k});
       else if(!strncmp(a, "t=", 2) && sscanf(a + 2, "%d:%n", &f, &n) == 1) {
          for(const char *c = a + 2 + n; *c; c++, f += TYPE_STEP_FRAMES) {
             int code = ps2_of(*c);
@@ -205,6 +209,7 @@ int main(int argc, char **argv)
 
    top->RESET   = 1;
    top->ps2_key = 0;
+   top->joystick = 0;
 
    auto tick = [&]() {
       hps.step(top);
@@ -261,6 +266,7 @@ int main(int argc, char **argv)
             // one event per clk_sys edge at most: let this one be seen
             tick(); tick();
          }
+         for(const PadEvent &e : pads) if(e.frame == frame) top->joystick = e.buttons;
          x = y = 0;
       }
       old_vs = top->VGA_VS;

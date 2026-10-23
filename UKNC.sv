@@ -73,6 +73,7 @@ localparam CONF_STR = {
 	"-;",
 	"O[12],Kakave+ mouse,On,Off;",
 	"O[13],Kakave+ clock,On,Off;",
+	"O[23:22],Gamepad,Arrows,Keypad 8-4-6-2,Off;",
 	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"O[19:17],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
@@ -89,6 +90,8 @@ localparam CONF_STR = {
 	"-;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
+	"J1,Space,Enter,Ctrl,Esc;",
+	"jn,A,B,X,Y;",
 	"V,v",`BUILD_DATE
 };
 
@@ -97,6 +100,7 @@ wire         forced_scandoubler;
 wire  [21:0] gamma_bus;
 wire [127:0] status;
 wire  [10:0] ps2_key;
+wire  [31:0] joystick_0;
 wire  [24:0] ps2_mouse;
 wire  [64:0] rtc;
 
@@ -154,6 +158,8 @@ hps_io #(.CONF_STR(CONF_STR), .WIDE(1), .VDNUM(SLOTS)) hps_io
 	.sd_buff_dout(sd_buff_dout),
 	.sd_buff_din(sd_buff_din),
 	.sd_buff_wr(sd_buff_wr),
+
+	.joystick_0(joystick_0),
 
 	.ps2_key(ps2_key),
 	.ps2_mouse(ps2_mouse),
@@ -341,13 +347,24 @@ video_mixer #(.LINE_LENGTH(LINE_PIXELS), .HALF_DEPTH(0), .GAMMA(0)) video_mixer
 
 ///////////////////////   KEYBOARD   /////////////////////////////
 
-wire [7:0] keycode;
+wire [ 7:0] keycode;
+wire [10:0] keys;
+
+gamepad pad
+(
+	.clk(clk_sys),
+	.reset(reset),
+	.mode(status[23:22]),
+	.joystick(joystick_0),
+	.ps2_in(ps2_key),
+	.ps2_out(keys)
+);
 
 keyboard kbd
 (
 	.clk(clk_sys),
 	.reset(reset),
-	.ps2_key(ps2_key),
+	.ps2_key(keys),
 	.key_byte(keycode)
 );
 

@@ -7,7 +7,7 @@ SRC = sim_top.sv monitor.sv hps_io_sim.sv video_mixer_sim.sv pll_sim.v ../UKNC.s
       $(RTL)/mkcolorreg.v $(RTL)/aberrant.v $(RTL)/covox.v $(RTL)/kakave.v $(RTL)/ide.v $(RTL)/mixer.v \
       $(RTL)/vp1-128fdd.v $(RTL)/fdd/fdd4.v $(RTL)/ay/ym2149.sv $(RTL)/uart/uart_rx.v \
       $(RTL)/uart/uart_tx.v $(RTL)/uart/uartfifo.v $(RTL)/vm2/vm2_wb.v \
-      $(RTL)/vm2/vm2_plm.v $(RTL)/keyboard.sv
+      $(RTL)/vm2/vm2_plm.v $(RTL)/keyboard.sv $(RTL)/gamepad.sv
 
 VFLAGS = --cc --exe --build -O3 -j 0 --top-module sim_top -I. -I.. \
          -Wno-fatal -Wno-WIDTH -Wno-UNUSED -Wno-PINMISSING -Wno-PINCONNECTEMPTY \

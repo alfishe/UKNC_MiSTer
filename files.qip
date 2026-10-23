@@ -21,5 +21,6 @@ set_global_assignment -name VERILOG_FILE rtl/kakave.v
 set_global_assignment -name VERILOG_FILE rtl/ide.v
 set_global_assignment -name VERILOG_FILE rtl/mixer.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/keyboard.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/gamepad.sv
 set_global_assignment -name SDC_FILE UKNC.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE UKNC.sv

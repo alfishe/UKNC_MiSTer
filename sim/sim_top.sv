@@ -8,6 +8,7 @@ module sim_top
    input         CLK_50M,
    input         RESET,
    input  [10:0] ps2_key /*verilator public*/,
+   input  [31:0] joystick /*verilator public*/,
 
    // the HPS side of the sector interface (see hps_io_sim.sv): slots 0-3
    // are the floppies, which share an LBA and a buffer, 4 the hard disk

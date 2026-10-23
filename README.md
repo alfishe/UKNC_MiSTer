@@ -18,6 +18,7 @@ machine's behaviour.
 * Serial port on the MiSTer UART.
 * Kakave+ cartridge: PS/2 mouse and real-time clock (set from the MiSTer).
 * IDE hard disk cartridge with the WD ROM, CHS and LBA28.
+* Gamepad mapped to keys.
 * 15 kHz video, 640x288; doubled to 31 kHz with `forced_scandoubler=1`
   in `MiSTer.ini` or a Scandoubler Fx (HQ2x, CRT scanlines) in the OSD.
 * Colour, grey or green monitor: on a monochrome one the eight RGB codes
@@ -48,6 +49,11 @@ disk down for programs that time themselves by it: the default plays
 
 "Kakave+ mouse" and "Kakave+ clock" in the OSD hide the cartridge's mouse
 and clock from the software.
+
+The gamepad's D-pad is the arrow keys, or keypad 8, 4, 6 and 2 ("Gamepad"
+in the OSD); A is Space, B ВВОД, X УПР and Y АР2.  The keyboard's rows
+apply: Space and ВВОД share a row with the Right arrow, so a game sees
+only the last pressed of them.
 
 ## Keyboard
 
